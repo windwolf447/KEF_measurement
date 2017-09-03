@@ -27,6 +27,9 @@ import java.util.List;
 
 import ca.uol.aig.fftpack.RealDoubleFFT;
 
+import static java.lang.Math.abs;
+import static java.lang.Math.log10;
+
 
 public class MainActivity extends Activity implements OnClickListener {
 
@@ -34,8 +37,9 @@ public class MainActivity extends Activity implements OnClickListener {
     int channelConfiguration = AudioFormat.CHANNEL_CONFIGURATION_MONO;
     int audioEncoding = AudioFormat.ENCODING_PCM_16BIT;
     private RealDoubleFFT transformer;
-    int blockSize = 256;
+    int blockSize = 512;
     double maxdb;
+    double Base = 0.003;
 
     Button startStopButton;
     boolean started = false;
@@ -46,6 +50,7 @@ public class MainActivity extends Activity implements OnClickListener {
     Bitmap bitmap;
     Canvas canvas;
     Paint paint;
+    Paint text_paint;
     TextView disply;
 
     //AudioRecord audioRecord;
@@ -61,11 +66,13 @@ public class MainActivity extends Activity implements OnClickListener {
         transformer = new RealDoubleFFT(blockSize);
 
         imageView = (ImageView) this.findViewById(R.id.imageView1);
-        bitmap = Bitmap.createBitmap((int) 256, (int) 100,
+        bitmap = Bitmap.createBitmap((int) 512, (int) 100,
                 Bitmap.Config.ARGB_8888);
         canvas = new Canvas(bitmap);
         paint = new Paint();
         paint.setColor(Color.WHITE);
+        text_paint = new Paint();
+        text_paint.setColor(Color.argb(255,255,165,0));
         imageView.setImageBitmap(bitmap);
 
 
@@ -124,15 +131,23 @@ public class MainActivity extends Activity implements OnClickListener {
         protected void onProgressUpdate(double[]... toTransform) {
 
             canvas.drawColor(Color.BLACK);
-
+            maxdb = 0;
+            int maxdb_i = 0;
             for (int i = 1; i < toTransform[0].length; i++) {
                 int x = i;
-                int downy = (int) (100 - (toTransform[0][i] * 10));
+                double dbValue = (20*log10(abs(toTransform[0][i])/Base));
+                if(dbValue > maxdb){
+                    maxdb = dbValue;
+                    maxdb_i = i;
+                }
+                int downy = (int) (100 - dbValue);
+                if(downy == 0){
+                    System.out.println(dbValue);
+                }
                 int upy = 100;
-
                 canvas.drawLine(x, downy, x, upy, paint);
             }
-
+            canvas.drawText(String.valueOf(maxdb)+" db", maxdb_i,(int) (100 - maxdb), text_paint);
             imageView.invalidate();
 
             // TODO Auto-generated method stub
@@ -156,7 +171,7 @@ public class MainActivity extends Activity implements OnClickListener {
             startStopButton.setText("Stop");
             recordTask = new RecordAudio();
             recordTask.execute();
-            disply.setText(String.valueOf(maxdb));
+
         }
     }
 
